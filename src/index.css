@@ -1,13 +1,692 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Primary Palette - Dark Blue & Ice White */
+    --ink: #0a192f;           /* Deep Navy */
+    --paper: #f0f4f8;         /* Ice White (Cool-toned background) */
+    --white: #ffffff;         /* Pure White (Card surfaces) */
+    --cream: #e1e8f0;         /* Soft Glacier (Borders/Dividers) */
+    
+    /* Brand Accent - Azure Blue */
+    --azure: #007fff;         
+    --azure-light: #3399ff;   
+    --azure-dark: #005bb5;
+    
+    /* UI Feedback */
+    --red: #e63946;           
+    --green: #2dce89;         
+    --muted: #64748b;         /* Slate Grey for subtle text */
+    --border: #cbd5e1;        /* Cool Gray border */
+    
+    /* Legacy Variable Mappings (Ensures no breaks) */
+    --gold: var(--azure);
+    --gold-light: var(--azure-light);
+    --teal: #1a6b6b;
+    --teal-light: #2a9090;
+  }
+
+  body {
+    margin: 0;
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Ambient Glacier Glow */
+    background: 
+      radial-gradient(at 0% 0%, rgba(0, 127, 255, 0.05) 0px, transparent 50%),
+      var(--paper);
+    color: var(--ink);
+  }
+
+  code {
+    font-family: 'DM Mono', source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+      monospace;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Playfair Display', serif;
+    color: var(--ink);
+  }
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+@layer components {
+  /* Layout */
+  .screen-container {
+    @apply min-h-screen flex;
+  }
+
+  /* --- Sidebar (Frosted Ice Glassmorphism) --- */
+  .sidebar {
+    @apply w-64 sticky top-0 h-screen flex flex-col;
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-right: 1px solid rgba(255, 255, 255, 0.3);
+    z-index: 40;
+  }
+
+  .sidebar-logo {
+    @apply flex items-center gap-2 px-6 py-8 border-b border-cream/50;
+  }
+
+  .sidebar-logo-mark {
+    @apply w-8 h-8 bg-azure rounded-lg flex items-center justify-center shadow-lg shadow-azure/20;
+  }
+
+  .sidebar-logo-text {
+    @apply font-serif font-bold text-ink text-xl;
+  }
+
+  .sidebar-user {
+    @apply mx-4 my-4 p-4 rounded-xl transition-all border border-cream/50;
+    background: rgba(10, 25, 47, 0.03);
+  }
+
+  .sidebar-user-name {
+    @apply font-medium text-ink;
+  }
+
+  .sidebar-user-role {
+    @apply text-xs text-muted mt-1;
+  }
+
+  .nav-item {
+    @apply flex items-center gap-3 px-4 py-3 mx-2 rounded-lg text-slate-600 
+           transition-all duration-300 hover:bg-azure/10 hover:text-azure;
+  }
+
+  .nav-item.active {
+    @apply bg-azure text-white shadow-lg shadow-azure/30;
+  }
+
+  .nav-icon {
+    @apply w-5 h-5;
+  }
+
+  /* Sidebar Footer */
+  .sidebar-footer {
+    @apply mt-auto p-4 border-t border-cream/50;
+  }
+
+  .logout-btn {
+    @apply flex items-center gap-2 text-muted hover:text-red transition-colors;
+  }
+
+  /* Main Content */
+  .main-content {
+    @apply flex-1 p-8 overflow-y-auto;
+  }
+
+  .page-header {
+    @apply mb-8;
+  }
+
+  .page-title {
+    @apply font-serif text-3xl font-bold text-ink mb-2;
+  }
+
+  .page-subtitle {
+    @apply text-muted;
+  }
+
+  /* --- Stat Cards --- */
+  .stat-card {
+    @apply bg-white rounded-xl border-none shadow-sm p-6 transition-all hover:-translate-y-1 hover:shadow-md;
+  }
+
+  .stat-icon {
+    @apply text-2xl mb-3 filter-azure; /* Tints icons to azure */
+  }
+
+  .stat-value {
+    @apply font-serif text-4xl font-bold text-azure mb-1;
+  }
+
+  .stat-label {
+    @apply text-xs text-muted font-semibold uppercase tracking-wide;
+  }
+
+  /* --- Generic Cards --- */
+  .card {
+    @apply bg-white rounded-xl border border-cream shadow-sm overflow-hidden;
+  }
+
+  .card-header {
+    @apply px-6 py-4 border-b border-cream flex items-center justify-between bg-white/50;
+  }
+
+  .card-title {
+    @apply font-semibold text-ink;
+  }
+
+  .card-body {
+    @apply p-6;
+  }
+
+  /* --- Forms --- */
+  .form-group {
+    @apply mb-4;
+  }
+
+  .form-label {
+    @apply block text-xs font-semibold text-muted uppercase tracking-wide mb-2;
+  }
+
+  .form-input, .form-select, .form-textarea {
+    @apply w-full px-4 py-3 bg-white border border-border rounded-lg text-ink 
+           focus:outline-none focus:border-azure focus:ring-1 focus:ring-azure 
+           transition-all;
+  }
+
+  .form-input.teacher-focus:focus {
+    @apply border-azure ring-azure;
+  }
+
+  .form-textarea {
+    @apply resize-y min-h-[80px];
+  }
+
+  .form-row {
+    @apply grid grid-cols-1 md:grid-cols-2 gap-4;
+  }
+
+  /* --- Buttons --- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg
+           font-medium text-sm transition-all cursor-pointer disabled:opacity-50
+           disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply bg-azure text-white hover:bg-azure-light shadow-md shadow-azure/10;
+  }
+
+  .btn-outline {
+    @apply bg-white text-azure border-2 border-azure/20 hover:border-azure;
+  }
+
+  .btn-danger {
+    @apply bg-red text-white hover:bg-red/90;
+  }
+
+  .btn-gold {
+    @apply bg-ink text-white hover:bg-ink/90;
+  }
+
+  .btn-teal {
+    @apply bg-teal text-white hover:bg-teal-light;
+  }
+
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+
+  .btn-lg {
+    @apply px-6 py-3 text-base;
+  }
+
+  /* --- Badges --- */
+  .badge {
+    @apply inline-flex px-3 py-1 rounded-full text-xs font-medium;
+  }
+
+  .badge-green {
+    @apply bg-green/10 text-green;
+  }
+
+  .badge-red {
+    @apply bg-red/10 text-red;
+  }
+
+  .badge-gold {
+    @apply bg-azure/10 text-azure;
+  }
+
+  .badge-teal {
+    @apply bg-teal/10 text-teal;
+  }
+  
+  .badge-learner {
+    @apply bg-azure/10 text-azure;
+  }
+  
+  .badge-teacher {
+    @apply bg-ink text-white;
+  }
+
+  /* Tables */
+  .table-container {
+    @apply overflow-x-auto;
+  }
+
+  .table {
+    @apply w-full text-sm;
+  }
+
+  .table th {
+    @apply px-4 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wide
+           border-b-2 border-border;
+  }
+
+  .table td {
+    @apply px-4 py-3 border-b border-cream;
+  }
+
+  .table tbody tr:hover td {
+    @apply bg-paper;
+  }
+
+  /* Registration Chip */
+  .reg-chip {
+    @apply inline-flex items-center gap-1 px-2 py-1 bg-ink text-white rounded
+           font-mono text-xs;
+  }
+
+  /* Report Card */
+  .report-card {
+    @apply bg-white border border-cream rounded-xl overflow-hidden shadow-lg;
+  }
+
+  .report-header {
+    @apply bg-ink text-white p-8 flex items-center justify-between;
+  }
+
+  .report-school-name {
+    @apply font-serif text-xl font-bold text-white;
+  }
+
+  .report-term {
+    @apply text-xs text-white/60 mt-1;
+  }
+
+  .report-student-info {
+    @apply text-right;
+  }
+
+  .report-student-name {
+    @apply font-serif text-lg font-semibold;
+  }
+
+  .report-reg {
+    @apply font-mono text-xs text-white/60 mt-1;
+  }
+
+  .report-body {
+    @apply p-8;
+  }
+
+  .grade-row {
+    @apply flex items-center py-3 border-b border-cream;
+  }
+
+  .grade-subject {
+    @apply flex-1 font-medium text-sm;
+  }
+
+  .grade-score {
+    @apply font-mono text-base font-medium w-16 text-center;
+  }
+
+  .grade-letter {
+    @apply w-12 text-center font-bold;
+  }
+
+  .grade-bar {
+    @apply w-32 h-2 bg-cream rounded-full overflow-hidden;
+  }
+
+  .grade-bar-fill {
+    @apply h-full rounded-full transition-all duration-500;
+  }
+
+  .comment-box {
+    @apply mt-6 p-4 bg-paper rounded-lg border-l-4 border-azure;
+  }
+
+  .comment-label {
+    @apply text-xs font-bold uppercase tracking-wide text-muted mb-2;
+  }
+
+  /* Progress Bar */
+  .progress-bar {
+    @apply h-2 bg-cream rounded-full overflow-hidden;
+  }
+
+  .progress-bar-fill {
+    @apply h-full rounded-full transition-all duration-500;
+  }
+
+  /* --- Attendance Ring (Azure Progress) --- */
+  .attendance-ring {
+    @apply relative flex items-center justify-center rounded-full border-0;
+    width: 100px;
+    height: 100px;
+    background: conic-gradient(var(--azure) var(--progress, 0%), var(--cream) 0%);
+    mask: radial-gradient(farthest-side, transparent 82%, black 83%);
+    -webkit-mask: radial-gradient(farthest-side, transparent 82%, black 83%);
+  }
+
+  .attendance-ring-container {
+    @apply relative flex items-center justify-center;
+  }
+
+  .attendance-percentage {
+    @apply absolute font-serif text-2xl font-bold text-ink;
+  }
+
+  /* Attendance */
+  .attendance-grid {
+    @apply grid grid-cols-8 gap-2 mt-2;
+  }
+
+  .att-day {
+    @apply w-10 h-10 rounded-lg flex items-center justify-center text-xs font-medium;
+  }
+
+  .att-present {
+    @apply bg-green/10 text-green;
+  }
+
+  .att-absent {
+    @apply bg-red/10 text-red;
+  }
+
+  .att-late {
+    @apply bg-azure/10 text-azure;
+  }
+
+  .att-holiday {
+    @apply bg-cream text-muted;
+  }
+
+  /* Attendance Input */
+  .att-input-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 gap-3 mt-4;
+  }
+
+  .att-input-row {
+    @apply flex items-center justify-between bg-white border border-cream rounded-lg p-3 text-sm;
+  }
+
+  /* --- Quick Actions (Interactive Glass) --- */
+  .action-card {
+    @apply flex items-center gap-4 p-4 bg-white border border-cream rounded-xl 
+           hover:border-azure hover:shadow-md transition-all cursor-pointer group;
+  }
+
+  .icon-container {
+    @apply w-12 h-12 rounded-lg flex items-center justify-center transition-colors;
+  }
+
+  .icon-azure {
+    @apply bg-azure/10 text-azure group-hover:bg-azure group-hover:text-white;
+  }
+
+  .icon-dark {
+    @apply bg-ink/10 text-ink group-hover:bg-ink group-hover:text-white;
+  }
+
+  .action-title {
+    @apply font-semibold text-ink group-hover:text-azure transition-colors;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    @apply fixed inset-0 bg-ink/55 backdrop-blur-sm z-50 
+           flex items-center justify-center;
+  }
+
+  .modal {
+    @apply bg-white rounded-xl p-8 w-[90%] max-w-lg shadow-2xl
+           max-h-[90vh] overflow-y-auto;
+  }
+
+  .modal-title {
+    @apply font-serif text-2xl font-bold mb-6;
+  }
+
+  .modal-footer {
+    @apply flex justify-end gap-3 mt-6;
+  }
+
+  /* Toast/Notification */
+  .toast {
+    @apply fixed top-6 right-6 px-4 py-3 rounded-lg text-sm font-medium 
+           shadow-lg z-50 transition-all duration-300;
+  }
+
+  .toast-success {
+    @apply bg-green text-white;
+  }
+
+  .toast-error {
+    @apply bg-red text-white;
+  }
+
+  .toast-info {
+    @apply bg-ink text-white;
+  }
+
+  /* Empty State */
+  .empty-state {
+    @apply text-center py-12 px-6;
+  }
+
+  .empty-state-icon {
+    @apply text-5xl mb-4 opacity-30 filter-azure;
+  }
+
+  .empty-state-text {
+    @apply text-muted;
+  }
+
+  /* Dividers */
+  .divider {
+    @apply h-px bg-border my-5;
+  }
+
+  /* Text utilities */
+  .text-muted {
+    color: var(--muted);
+  }
+
+  .mono {
+    @apply font-mono;
+  }
+
+  /* Loading Spinner */
+  .spinner {
+    @apply animate-spin rounded-full border-4 border-border border-t-azure w-12 h-12;
+  }
+
+  /* Login Card */
+  .login-card {
+    @apply bg-white rounded-xl p-8 md:p-12 w-full max-w-md shadow-2xl
+           border border-border;
+  }
+
+  .login-badge {
+    @apply inline-block px-3 py-1 rounded-full text-xs font-semibold 
+           tracking-wider uppercase mb-3;
+  }
+
+  .back-btn {
+    @apply inline-flex items-center gap-1 text-sm text-muted hover:text-ink transition-colors mb-6;
+  }
+
+  /* --- Login / Landing (Arctic Theme) --- */
+  .login-screen {
+    @apply min-h-screen flex items-center justify-center p-6;
+    background: radial-gradient(circle at 20% 20%, rgba(0, 127, 255, 0.15) 0%, transparent 40%),
+                var(--ink);
+  }
+
+  .login-card-frosted {
+    @apply w-full max-w-md p-10 rounded-2xl shadow-2xl;
+    background: rgba(255, 255, 255, 0.03); 
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .login-input {
+    @apply w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white 
+           placeholder:text-slate-500 focus:outline-none focus:border-azure 
+           focus:ring-1 focus:ring-azure transition-all;
+  }
+
+  /* Landing Page */
+  .landing-card {
+    @apply relative z-10 text-center p-8 md:p-12 max-w-md w-full;
+  }
+
+  .logo-mark {
+    @apply w-16 h-16 md:w-20 md:h-20 mx-auto bg-azure rounded-full 
+           flex items-center justify-center mb-6 shadow-lg shadow-azure/20;
+  }
+
+  .landing-title {
+    @apply font-serif text-3xl md:text-4xl font-black text-white 
+           tracking-tight mb-2;
+  }
+
+  .landing-sub {
+    @apply text-white/50 text-xs md:text-sm tracking-widest uppercase mb-8;
+  }
+
+  .role-btn {
+    @apply flex items-center gap-4 p-4 md:p-5 rounded-xl text-left 
+           transition-all hover:-translate-y-1 w-full;
+  }
+
+  .role-btn.teacher {
+    @apply bg-azure text-white shadow-lg shadow-azure/30 
+           hover:shadow-xl hover:shadow-azure/50;
+  }
+
+  .role-btn.learner {
+    @apply bg-ink text-white shadow-lg shadow-ink/30 
+           hover:shadow-xl hover:shadow-ink/50;
+  }
+
+  .role-icon {
+    @apply w-10 h-10 md:w-12 md:h-12 bg-white/20 rounded-lg 
+           flex items-center justify-center text-xl md:text-2xl;
+  }
+
+  .role-desc {
+    @apply text-xs opacity-70 mt-1;
+  }
+
+  /* Animations */
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideIn {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  .animate-fade-up {
+    animation: fadeUp 0.4s ease-out;
+  }
+
+  .animate-slide-in {
+    animation: slideIn 0.3s ease-out;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--cream);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--muted);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--ink);
+  }
+
+  /* Focus Styles */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-azure ring-offset-2 ring-offset-paper;
+  }
+
+  /* Selection */
+  ::selection {
+    @apply bg-azure/30 text-ink;
+  }
+}
+
+@layer utilities {
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .text-shadow-lg {
+    text-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  }
+
+  .glass-ice {
+    @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-sm;
+  }
+  
+  .filter-azure {
+    filter: sepia(100%) saturate(300%) hue-rotate(190deg) brightness(90%);
+  }
+  
+  .bg-gradient-azure {
+    background: linear-gradient(135deg, var(--azure) 0%, var(--azure-light) 100%);
+  }
+
+  .bg-gradient-ink {
+    background: linear-gradient(135deg, var(--ink) 0%, #1a2d3f 100%);
+  }
+  
+  .resize-y {
+    resize: vertical;
+  }
+  
+  .resize-none {
+    resize: none;
+  }
+  
+  .resize-x {
+    resize: horizontal;
+  }
+  
+  .resize {
+    resize: both;
+  }
 }
