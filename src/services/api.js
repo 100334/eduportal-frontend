@@ -17,7 +17,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 15000, // Increased to 15 seconds for slower networks
+  timeout: 30000, // INCREASED to 30 seconds for slower networks/Render wake-up
   withCredentials: true, // Important for CORS with credentials
 });
 
@@ -33,6 +33,14 @@ api.interceptors.request.use(
     const user = getStoredUser();
     if (user?.role) {
       config.headers['X-User-Role'] = user.role;
+    }
+    
+    // Add timestamp to prevent caching issues
+    if (config.method?.toLowerCase() === 'get') {
+      config.params = {
+        ...config.params,
+        _t: Date.now()
+      };
     }
     
     // Log requests in development
@@ -51,7 +59,9 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor
+// ============================================
+// FIXED: Response interceptor with timeout handling
+// ============================================
 api.interceptors.response.use(
   (response) => {
     // Log responses in development
@@ -72,9 +82,41 @@ api.interceptors.response.use(
       status: error.response?.status,
       data: error.response?.data,
       message: error.message,
+      code: error.code,
       url: originalRequest?.url,
       baseURL: API_URL
     });
+
+    // ============================================
+    // FIX: Handle Timeout Errors (ECONNABORTED)
+    // ============================================
+    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+      console.log('⏰ Request timeout for:', originalRequest?.url);
+      
+      // Don't retry auth endpoints on timeout
+      if (originalRequest?.url?.includes('/auth/')) {
+        toast.error('Server is taking too long to respond. Please try again.');
+        return Promise.reject(error);
+      }
+      
+      // Retry logic for non-auth endpoints
+      originalRequest._retryCount = originalRequest._retryCount || 0;
+      const MAX_RETRIES = 2;
+      
+      if (originalRequest._retryCount < MAX_RETRIES) {
+        originalRequest._retryCount++;
+        console.log(`🔄 Retry ${originalRequest._retryCount}/${MAX_RETRIES} for:`, originalRequest.url);
+        
+        // Exponential backoff: wait longer between retries
+        const delay = originalRequest._retryCount * 2000;
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        return api(originalRequest);
+      } else {
+        toast.error(`Request timed out for ${originalRequest?.url || 'unknown endpoint'}. Please refresh the page.`);
+        return Promise.reject(error);
+      }
+    }
 
     // Handle 401 Unauthorized errors (token expired)
     if (error.response?.status === 401 && !originalRequest?._retry) {
@@ -139,7 +181,7 @@ api.interceptors.response.use(
     // Handle 404 Not Found
     if (error.response?.status === 404) {
       console.error('Resource not found:', originalRequest?.url);
-      toast.error(`The requested resource was not found: ${originalRequest?.url}`);
+      toast.error(`The requested resource was not found.`);
       return Promise.reject(error);
     }
 
@@ -158,18 +200,13 @@ api.interceptors.response.use(
 
     // Handle CORS errors (no response)
     if (error.message === 'Network Error') {
-      toast.error(`Cannot connect to server. Please check if backend is running at ${API_URL}`);
+      toast.error(`Cannot connect to server. Please check your internet connection.`);
       return Promise.reject(error);
     }
 
     // Handle network errors (no response)
-    if (error.code === 'ECONNABORTED') {
-      toast.error('Request timeout. Please check your connection.');
-      return Promise.reject(error);
-    }
-
     if (!error.response) {
-      toast.error(`Network error. Cannot reach server at ${API_URL}`);
+      toast.error(`Network error. Cannot reach server.`);
       return Promise.reject(error);
     }
 
@@ -246,7 +283,7 @@ export const del = async (url, showToast = true) => {
  */
 export const checkHealth = async () => {
   try {
-    const response = await api.get('/health');
+    const response = await api.get('/health', { timeout: 5000 }); // Shorter timeout for health check
     return response.data;
   } catch (error) {
     return { 
@@ -273,6 +310,20 @@ export const getApiStatus = () => {
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV
   };
+};
+
+/**
+ * Wake up the backend (useful for Render free tier)
+ */
+export const wakeBackend = async () => {
+  try {
+    const response = await api.get('/health', { timeout: 10000 });
+    console.log('✅ Backend is awake:', response.data);
+    return true;
+  } catch (error) {
+    console.log('⏰ Waking backend...');
+    return false;
+  }
 };
 
 export default api;
