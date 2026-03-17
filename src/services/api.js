@@ -2,14 +2,23 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { getStoredToken, setStoredToken, removeStoredToken, getStoredUser } from './storage';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// Check if we're in production and API_URL is set
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const API_URL = process.env.REACT_APP_API_URL;
+
+// In production, API_URL must be set
+if (IS_PRODUCTION && !API_URL) {
+  console.error('❌ REACT_APP_API_URL is not set in production!');
+  // You might want to show a user-friendly message here
+}
 
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: API_URL || 'http://localhost:5000/api', // Fallback only for development
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10 seconds timeout
+  timeout: 15000, // Increased to 15 seconds for slower networks
+  withCredentials: true, // Important for CORS with credentials
 });
 
 // Request interceptor
@@ -58,22 +67,21 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Log errors in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error('❌ API Error:', {
-        status: error.response?.status,
-        data: error.response?.data,
-        message: error.message,
-        url: originalRequest?.url
-      });
-    }
+    // Log errors always (even in production for debugging)
+    console.error('❌ API Error:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+      url: originalRequest?.url,
+      baseURL: API_URL
+    });
 
     // Handle 401 Unauthorized errors (token expired)
     if (error.response?.status === 401 && !originalRequest?._retry) {
       originalRequest._retry = true;
 
       try {
-        // Try to refresh token
+        // Use full path for refresh
         const response = await api.post('/auth/refresh');
         const { token } = response.data;
 
@@ -93,6 +101,7 @@ api.interceptors.response.use(
                             user?.role === 'teacher' ? '/teacher/login' : 
                             '/learner/login';
         
+        // Use window.location for redirect
         window.location.href = redirectPath;
         toast.error('Session expired. Please login again.');
         return Promise.reject(refreshError);
@@ -130,7 +139,7 @@ api.interceptors.response.use(
     // Handle 404 Not Found
     if (error.response?.status === 404) {
       console.error('Resource not found:', originalRequest?.url);
-      toast.error('The requested resource was not found.');
+      toast.error(`The requested resource was not found: ${originalRequest?.url}`);
       return Promise.reject(error);
     }
 
@@ -147,6 +156,12 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    // Handle CORS errors (no response)
+    if (error.message === 'Network Error') {
+      toast.error(`Cannot connect to server. Please check if backend is running at ${API_URL}`);
+      return Promise.reject(error);
+    }
+
     // Handle network errors (no response)
     if (error.code === 'ECONNABORTED') {
       toast.error('Request timeout. Please check your connection.');
@@ -154,7 +169,7 @@ api.interceptors.response.use(
     }
 
     if (!error.response) {
-      toast.error('Network error. Cannot reach server.');
+      toast.error(`Network error. Cannot reach server at ${API_URL}`);
       return Promise.reject(error);
     }
 
@@ -234,7 +249,12 @@ export const checkHealth = async () => {
     const response = await api.get('/health');
     return response.data;
   } catch (error) {
-    return { status: 'error', message: 'API is not reachable' };
+    return { 
+      status: 'error', 
+      message: 'API is not reachable',
+      url: API_URL,
+      error: error.message 
+    };
   }
 };
 
@@ -250,7 +270,8 @@ export const getApiStatus = () => {
     baseURL: API_URL,
     userRole: user?.role || null,
     isAuthenticated: !!token,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV
   };
 };
 
