@@ -13,7 +13,7 @@ if (IS_PRODUCTION && !API_URL) {
 }
 
 const api = axios.create({
-  baseURL: API_URL || 'http://localhost:5000/api', // Fallback only for development
+  baseURL: API_URL || 'http://localhost:1000/api', // Fallback only for development
   headers: {
     'Content-Type': 'application/json',
   },
