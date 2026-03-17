@@ -10,9 +10,10 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: true,
+  timeout: 10000, // Add timeout to prevent hanging requests
 });
 
-// Request interceptor - add token to every request
+// Request interceptor
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -25,10 +26,12 @@ api.interceptors.request.use(
 );
 
 // ============================================
-// FIXED: Response interceptor with loop prevention
+// URGENT FIX: Prevent infinite retry loops
 // ============================================
 let isRefreshing = false;
 let failedQueue = [];
+let requestCount = 0;
+const MAX_RETRIES = 3;
 
 const processQueue = (error, token = null) => {
   failedQueue.forEach(prom => {
@@ -45,26 +48,46 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-
-    // Prevent infinite loop on refresh endpoint itself
-    if (originalRequest.url === '/auth/refresh') {
-      console.log('❌ Refresh token failed - clearing auth');
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('userType');
+    
+    // Track retry count
+    originalRequest._retryCount = originalRequest._retryCount || 0;
+    
+    // CRITICAL: Don't retry if we've already tried too many times
+    if (originalRequest._retryCount >= MAX_RETRIES) {
+      console.error(`❌ Max retries (${MAX_RETRIES}) reached for:`, originalRequest.url);
       
-      // Only redirect if not already on login page
-      if (!window.location.pathname.includes('/login')) {
-        window.location.href = '/learner/login';
+      // Show user-friendly message
+      if (originalRequest.url !== '/auth/refresh') {
+        toast.error('Connection issues. Please refresh the page.');
       }
+      
       return Promise.reject(error);
     }
-
+    
+    // Don't retry on 429 (rate limit) - wait and let user refresh
+    if (error.response?.status === 429) {
+      console.error('⛔ Rate limited. Stopping all requests.');
+      
+      // Clear any pending requests
+      toast.error('Too many requests. Please wait a moment and refresh the page.');
+      
+      // Don't retry - just reject
+      return Promise.reject(error);
+    }
+    
     // Handle 401 errors (unauthorized)
     if (error.response?.status === 401 && !originalRequest._retry) {
       
-      // If already refreshing, queue this request
+      // Special case: Don't try to refresh the refresh endpoint
+      if (originalRequest.url === '/auth/refresh') {
+        console.log('❌ Refresh token failed - logging out');
+        localStorage.clear();
+        window.location.href = '/learner/login';
+        return Promise.reject(error);
+      }
+      
       if (isRefreshing) {
+        // Queue this request
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
@@ -76,45 +99,33 @@ api.interceptors.response.use(
       }
 
       originalRequest._retry = true;
+      originalRequest._retryCount++;
       isRefreshing = true;
 
       try {
-        // Attempt to refresh token
         const refreshToken = localStorage.getItem('refreshToken');
         const response = await axios.post(`${API_URL}/auth/refresh`, { 
           refreshToken 
         }, {
-          withCredentials: true
+          withCredentials: true,
+          timeout: 5000
         });
 
         if (response.data.token) {
-          // Store new token
           localStorage.setItem('token', response.data.token);
-          
-          // Update authorization header
           api.defaults.headers.common.Authorization = `Bearer ${response.data.token}`;
-          
-          // Process queued requests
           processQueue(null, response.data.token);
-          
-          // Retry original request
           originalRequest.headers.Authorization = `Bearer ${response.data.token}`;
           return api(originalRequest);
         } else {
-          throw new Error('No token in refresh response');
+          throw new Error('No token in response');
         }
       } catch (refreshError) {
-        // Refresh failed - clear everything
         processQueue(refreshError, null);
-        
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
-        localStorage.removeItem('userType');
+        localStorage.clear();
         
         // Only redirect if not on login page
         if (!window.location.pathname.includes('/login')) {
-          toast.error('Session expired. Please login again.');
           window.location.href = '/learner/login';
         }
         
@@ -122,18 +133,6 @@ api.interceptors.response.use(
       } finally {
         isRefreshing = false;
       }
-    }
-
-    // Handle other errors
-    if (error.response?.status === 403) {
-      console.error('Access forbidden:', error.response.data);
-      toast.error('You do not have permission to access this resource');
-    } else if (error.response?.status === 429) {
-      console.error('Rate limited:', error.response.data);
-      toast.error('Too many requests. Please try again later.');
-    } else if (error.response?.status === 500) {
-      console.error('Server error:', error.response.data);
-      toast.error('Server error. Please try again later.');
     }
 
     return Promise.reject(error);
